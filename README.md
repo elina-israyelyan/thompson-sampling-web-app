@@ -1,6 +1,7 @@
-# thompson-sampling
+# thompson-sampling-web-app
 
-A tool for marketeers that will help to choose the right advertisement to apply based on thompson sampling approach.
+A tool for marketeers to input data, define KPI-s and receive analysis on the best reward-giving
+advertisement based on Thompson Sampling approach.
 
 ### What is this repository for? ###
 
