@@ -9,8 +9,8 @@ from service.thompson_sampling.base import BaseModel
 class ThompsonSampling(BaseModel):
     def __init__(self):
         self.arm_reward_probas = None
-        self.arm_labels = []
         self.penalties = []
+        self.arm_labels = []
 
     @property
     def arm_labels(self):

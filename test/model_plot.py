@@ -14,12 +14,12 @@ def model_beta_visualisation():
     data['B3'] = [random.randint(0, 1) for x in range(150)]
     model = ThompsonSampling()
     data = pd.DataFrame(data)
-    a_b_lists = {k: [] for k in data.keys()}
+    a_b_lists = {k: [] for k in data.columns}
     for i in range(len(data)):
         model.fit(data.iloc[[i]])
         for j in range(len(list(data.columns))):
             a_b_lists[model.arm_labels[j]].append(model.arm_reward_probas[j])
-    fig_1 = go.FigureWidget(plot_dynamic_betas(a_b_lists))
+    fig_1 = plot_dynamic_betas(a_b_lists)
     predicts_best = []
     for i in range(100):
         predicts_best.append(model.predict())
