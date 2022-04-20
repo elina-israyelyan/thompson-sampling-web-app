@@ -8,8 +8,10 @@ from service.thompson_sampling.base import BaseModel
 
 class ThompsonSampling(BaseModel):
     def __init__(self):
+        super().__init__()
         self.arm_reward_probas = None
-        self.penalties = []
+        self.penalties = None
+        self.number_of_plays = None
         self.arm_labels = []
 
     @property
@@ -20,9 +22,10 @@ class ThompsonSampling(BaseModel):
     def arm_labels(self, arm_labels):
         self.arm_reward_probas = [(1, 1)] * len(arm_labels)
         self.penalties = [0] * len(arm_labels)
+        self.number_of_plays = [0] * len(arm_labels)
         self._arm_labels = arm_labels
 
-    def fit(self, data: pd.DataFrame, prefit: bool = True):
+    def fit(self, data: pd.DataFrame, prefit: bool = True, exploration_time: int = 10):
         """
         Method to fit the data to the Binomial Thompson Sampling model
         Parameters
@@ -31,6 +34,8 @@ class ThompsonSampling(BaseModel):
             Data to fit the model.
         prefit : bool
             If True use the previous, trained  parameters of beta distribution for each arm.
+        exploration_time: int
+            The amount of time points to explore before updating the distribution parameters.
         Returns
         -------
         None
@@ -48,8 +53,16 @@ class ThompsonSampling(BaseModel):
                 continue
             if is_reward == 1 or is_reward == 0:
                 self.penalties[best_arm] += 1 - is_reward
-                a, b = self.arm_reward_probas[best_arm]
-                self.arm_reward_probas[best_arm] = (a + is_reward, b + 1 - is_reward)
+                self.number_of_plays[best_arm] += 1
+            else:
+                raise ValueError("The data is not complete. Required data contains binary values only.")
+
+            if sum(self.number_of_plays) % exploration_time == 0:
+                for arm in range(len(self.arm_labels)):
+                    num_of_fails = self.penalties[arm]
+                    num_of_success = self.number_of_plays[arm] - num_of_fails
+                    a, b = self.arm_reward_probas[arm]
+                    self.arm_reward_probas[arm] = (a + num_of_success, b + num_of_fails)
 
     def predict(self):
         """
@@ -107,7 +120,8 @@ class ThompsonSampling(BaseModel):
             pickle.dump({
                 "arm_reward_probas": self.arm_reward_probas,
                 "arm_labels": self.arm_labels,
-                "penalties": self.penalties}, f, protocol=pickle.HIGHEST_PROTOCOL)
+                "penalties": self.penalties,
+                "number_of_plays": self.number_of_plays}, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load_model(self, load_path: str = "./", version: str = "latest"):
         """
@@ -126,6 +140,7 @@ class ThompsonSampling(BaseModel):
         """
         with open(load_path + "model_" + version, 'rb') as f:
             model = pickle.load(f)
-        self.arm_reward_probas, self.arm_labels, self.penalties = (model["arm_reward_probas"],
-                                                                   model["arm_labels"],
-                                                                   model["penalties"])
+        self.arm_reward_probas, self.arm_labels, self.penalties, self.number_of_plays = (model["arm_reward_probas"],
+                                                                                         model["arm_labels"],
+                                                                                         model["penalties"],
+                                                                                         model["number_of_plays"])
