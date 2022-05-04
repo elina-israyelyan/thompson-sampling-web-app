@@ -144,3 +144,19 @@ class ThompsonSampling(BaseModel):
                                                                                          model["arm_labels"],
                                                                                          model["penalties"],
                                                                                          model["number_of_plays"])
+
+    def calculate_waste(self, arm_costs: dict = None):
+        """
+        Calculate the wasted cost.
+        Parameters
+        ----------
+        arm_costs : dict
+            The costs per arm.
+
+        Returns
+        -------
+        dict
+            Wasted costs per arm.
+        """
+        penalty_per_arm = {k: v for k, v in zip(self.arm_labels, self.penalties)}
+        return {k: penalty_per_arm[k] * v for k, v in arm_costs.items()}
