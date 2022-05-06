@@ -1,0 +1,138 @@
+.cont{
+    min-height: 1000px;
+    overflow: scroll;
+}
+.ms-auto{
+    margin-left: 20% !important;
+}
+
+.homeCont{
+    overflow: hidden;
+}
+.navText{
+    font-size: 40px;
+    color: white;
+    position: absolute;
+    left: 40%;
+    bottom: 20%;
+}
+
+.navText1{
+    position: absolute;
+    font-size: 40px;
+    color: rgb(255, 255, 255);
+    left: 10%;
+    bottom:20%;
+
+}
+
+.card-text{
+    font-size: 35px;
+
+}
+.card{
+    border: 5px solid rgb(32, 120, 252);
+    margin: 5%;
+    border-radius: 6%;
+    display: inline-flex;
+    box-shadow: 5px 7px lightblue;
+}
+.inputDataButton{
+    font-size: 3rem;
+    border-radius: 5%;
+    position: absolute;
+    bottom: 20%;
+    right: 40%;
+
+}
+.analyseBox{
+    position: absolute;
+    bottom:20%;
+    right:0%
+}
+
+.inputMore{
+    position: absolute;
+    bottom: 60%;
+    right:0%
+}
+
+
+
+
+.divOverlay{
+    opacity:1;
+    width:100%;
+    height:100%;
+}
+
+.adata{
+    position: absolute;
+    bottom:4%;
+    right:74%;
+
+}
+
+.graphCont{
+    margin: auto;
+    display: flex;
+    justify-content: space-around;
+}
+
+.dynGraph1{
+    height: 500px;
+    width: 650px;
+    border: 2px solid rgb(0, 0, 0);
+}
+
+.dynGraph2{
+    height: 500px;
+    width: 650px;
+    border: 2px solid rgb(0, 7, 10);
+}
+.me-1{
+    border: 2px solid black;
+    border-radius: 50%;
+    height: 30px;
+    width: 30px;
+    text-align: left;
+    position: relative;
+    top: 10%;
+    z-index: 100;
+    left: 3%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.downloadButton{
+    font-size: 2rem;
+    border-radius: 5%;
+    position: absolute;
+    bottom: -2%;
+    right: 17%
+}
+.modal-content{
+    padding: 2%;
+}
+
+.backHome{
+    position: absolute;
+    bottom: -5%;
+    right:49%
+
+}
+
+.analysis{
+    margin: 3% !important;
+    width: 40rem !important;
+    height: 15rem !important;
+}
+
+.calcwasteButton{
+    font-size: 2rem;
+    border-radius: 5%;
+    position: absolute;
+    right: 18%;
+    top: 80%;
+}
