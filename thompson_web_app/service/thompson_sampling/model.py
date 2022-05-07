@@ -2,6 +2,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 
 from service.thompson_sampling.base import BaseModel
 
@@ -61,8 +62,7 @@ class ThompsonSampling(BaseModel):
                 for arm in range(len(self.arm_labels)):
                     num_of_fails = self.penalties[arm]
                     num_of_success = self.number_of_plays[arm] - num_of_fails
-                    a, b = self.arm_reward_probas[arm]
-                    self.arm_reward_probas[arm] = (a + num_of_success, b + num_of_fails)
+                    self.arm_reward_probas[arm] = (1 + num_of_success, 1 + num_of_fails)
 
     def predict(self):
         """
@@ -160,3 +160,21 @@ class ThompsonSampling(BaseModel):
         """
         penalty_per_arm = {k: v for k, v in zip(self.arm_labels, self.penalties)}
         return {k: penalty_per_arm[k] * v for k, v in arm_costs.items()}
+
+    def plot_best_rewards(self, n: int = 200):
+        """
+        Plot the histogram of best rewards for n predicts.
+        Parameters
+        ----------
+        n : int
+
+        Returns
+        -------
+        go.Figure
+            The histogram of best rewards
+        """
+        predicts_best = []
+        for i in range(n):
+            predicts_best.append(self.predict())
+        fig = go.Figure(data=[go.Histogram(x=predicts_best)])
+        return fig

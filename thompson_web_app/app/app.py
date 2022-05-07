@@ -1,13 +1,14 @@
-from dash import html, Dash, dcc, Input, Output, callback, State
+import base64
+import io
+import json
 
 import dash_bootstrap_components as dbc
-
-import base64
-import pandas as pd
-import io
 import plotly.express as px
-import pdfkit
-from time import sleep
+from dash import Dash, dcc, html, Input, Output, State
+
+from service.data import DataPreProcessing
+from service.thompson_sampling import ThompsonSampling
+from utils.data_visualisation import *
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -26,40 +27,42 @@ app.layout = html.Div([
     ),
     html.Div(id="page-content", style={
         'background-image': 'url(https://www.xmple.com/wallpaper/blue-gradient-white-linear-1920x1080-c2-87cefa-ffffff-a-270-f-14.svg)'
-    }, className='divOverlay')
+    }, className='divOverlay'),
+    dcc.Store(id="stored_data")
 
 ])
 
-index_page = html.Div([
-    dbc.Card([
-        dbc.CardBody([html.P(
-            "FindYourReward is a tool which enables user to input data, define KPIs and recieve analysis on best reward-giving advertisement.",
-            className="card-text")])
-    ], style={"width": "30rem"}),
+index_page = html.Div([dbc.Card([
+    dbc.CardBody([html.P(
+        "FindYourReward is a tool which enables user to input data, define KPIs and recieve analysis on best reward-giving advertisement.",
+        className="card-text")])
+], style={"width": "30rem"}),
     dbc.Button("Input Data", id="open", outline=True, color="primary", className='inputDataButton'),
     dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle("Please specify the following information")),
             dbc.InputGroup(
-                [dbc.InputGroupText("Threshold*:"), dbc.Input(type='number')],
+                [dbc.InputGroupText("Threshold*:"), dbc.Input(id="threshold", type='number')],
                 className="mb-3",
 
             ),
             dbc.InputGroup(
-                [dbc.InputGroupText("Cost Per Arm:"), dbc.Input(type='number'),
+                [dbc.InputGroupText("Cost Per Arm:"), dbc.Input(id="costs_per_arm", type='json'),
                  dbc.InputGroupText("$")],
                 className="mb-3",
 
             ),
             dbc.InputGroup(
-                [dbc.InputGroupText("Exploration time"), dbc.Input(type='number'),
-                 dbc.InputGroupText("Sec."), ],
+                [dbc.InputGroupText("Exploration time"),
+                 dbc.Input(id="exploration_time", type='number'),
+                 dbc.InputGroupText("Timepoint"), ],
                 className="mb-3",
 
             ),
             dbc.ModalBody("* is required"),
 
-            html.Div([  # this code section taken from Dash docs https://dash.plotly.com/dash-core-components/upload
+            html.Div([
+                # this code section taken from Dash docs https://dash.plotly.com/dash-core-components/upload
                 dcc.Upload(
                     id='upload-data',
                     children=html.Div([
@@ -96,15 +99,20 @@ index_page = html.Div([
 
     dbc.Card([
         dbc.CardBody([
-            html.P("For more information: "),
-            dcc.Link(dbc.Button("Click here", outline=True, color="primary"), href="https://www.google.com",
+            html.P("For more information on algorithm: "),
+            dcc.Link(dbc.Button("Click here", outline=True, color="primary"),
+                     href="https://analyticsindiamag.com/thompson-sampling-explained-with-python-code/",
                      target='blank'),
         ])
     ], style={"width": "25rem"}, className='inputMore'),
     dbc.Card([
         dbc.CardBody([
             html.P("View how it works on randomly generated data: "),
-            dcc.Link(dbc.Button("Analyse generated data", outline=True, color="primary"), href="/vispage"),
+            dcc.Link(dbc.Button("Analyse generated data",
+                                id="random_data_analyze",
+                                outline=True,
+                                color="primary"),
+                     href="/results"),
         ])
     ], style={"width": "25rem"}, className='analyseBox'),
 ], className="homeCont cont"),
@@ -135,7 +143,7 @@ vis_page = html.Div([
             dcc.Graph(
                 figure={
                     'data': [fig],
-                }, className='dynGraph1',
+                }, className='dynGraph1', id="figure_1"
             ),
         ]),
 
@@ -157,7 +165,7 @@ vis_page = html.Div([
             dcc.Graph(
                 figure={
                     'data': [fig],
-                }, className='dynGraph2'
+                }, className='dynGraph2', id="figure_2"
             ),
         ]),
     ], className="graphCont"),
@@ -183,8 +191,10 @@ vis_page = html.Div([
         is_open=False,
     ),
 
-    dbc.Button("Download Output", outline=False, color="primary", id="js", n_clicks=0, className='downloadButton'),
-    dcc.Link(dbc.Button("Back to Home", outline=False, color="primary"), href="/homepage", className='backHome')
+    dbc.Button("Download Output", outline=False, color="primary", id="js", n_clicks=0,
+               className='downloadButton'),
+    dcc.Link(dbc.Button("Back to Home", outline=False, color="primary"), href="/homepage",
+             className='backHome')
 
 ], className="cont", id="print"),
 
@@ -218,7 +228,7 @@ err_page = html.Div([
 def displayPage(pathname):
     if pathname == '/homepage':
         return index_page
-    elif pathname == '/vispage':
+    elif pathname == '/results':
         return vis_page
     else:
         return err_page
@@ -241,7 +251,6 @@ def parse_contents(contents, filename, date):
     decoded = base64.b64decode(content_string)
     if 'csv' in filename:
         # Assume that the user uploaded a CSV file 
-        print('There was an error processing this file.')
         df = pd.read_csv(
             io.StringIO(decoded.decode('utf-8')))
     elif 'xls' in filename:
@@ -251,19 +260,60 @@ def parse_contents(contents, filename, date):
         return html.Div([
             'There was an error processing this file.'
         ])
-    return dcc.Link(dbc.Button("Analyse Data", outline=False, color="primary"), href="/vispage", className='adata')
+    return df
 
 
 @app.callback(Output('output-datatable', 'children'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
               State('upload-data', 'last_modified'))
-def update_output(list_of_contents, list_of_names, list_of_dates):
+def show_button(list_of_contents, list_of_names, list_of_dates):
+    children = [parse_contents(c, n, d) for c, n, d in zip(list_of_contents, list_of_names, list_of_dates)]
     if list_of_contents is not None:
-        children = [
-            parse_contents(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
-        return children
+        return dcc.Link(dbc.Button("Analyze Data", outline=False, color="primary", id="analyze_input_data"),
+                        href="/results", className='adata')
+
+
+@app.callback(Output('stored_data', 'data'),
+              Input('upload-data', 'contents'),
+              State('upload-data', 'filename'),
+              State('upload-data', 'last_modified'),
+              State("threshold", "value"),
+              State('exploration_time', 'value'),
+              State("costs_per_arm", "value")
+              )
+def update_data(list_of_contents, list_of_names, list_of_dates, threshold, exploration_time, costs_per_arm):
+    if list_of_contents is not None:
+        children = [parse_contents(c, n, d) for c, n, d in zip(list_of_contents, list_of_names, list_of_dates)]
+        data = {
+            'df': children[0].to_json(orient='split', date_format='iso'),
+            'threshold': threshold,
+            'exploration_time': exploration_time,
+            "costs_per_arm": costs_per_arm
+        }
+        return json.dumps(data)
+
+
+@app.callback(Output('figure_1', "figure"), Output("figure_2", "figure"),
+              Input("stored_data", "data")
+              )
+def update_results(data):
+    data = json.loads(data)
+
+    data_df = DataPreProcessing(processing_steps=["make_binary"],
+                                make_binary_kwargs={"threshold": data["threshold"]}).preprocess(
+        pd.read_json(data['df'], orient='split')
+    )
+
+    model = ThompsonSampling()
+    if data["exploration_time"] is None:
+        exploration_time = 1
+    else:
+        exploration_time = data["exploration_time"]
+    a_b_lists = get_dist_params(model, data_df, exploration_time)
+    figure = plot_dynamic_betas(a_b_lists)
+    figure_2 = model.plot_best_rewards()
+    return figure, figure_2
 
 
 if __name__ == '__main__':
