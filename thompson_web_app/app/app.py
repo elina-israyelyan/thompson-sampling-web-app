@@ -172,15 +172,15 @@ vis_page = html.Div([
 
     dbc.Card([
         dbc.CardBody([
-            html.P(
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
+            html.P(id = "best_reward_text",
+                children = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
         ])
     ], style={"width": "25rem"}, className='analysis'),
     dbc.Button("Calculate Waste", id='open', color="primary", className='calcwasteButton'),
     dbc.Modal(
         [
             dbc.ModalHeader(dbc.ModalTitle("Header")),
-            dbc.ModalBody("This is the content of the modal"),
+            dbc.ModalBody("This is the content of the modal", id="calculate_waste_body"),
             dbc.ModalFooter(
                 dbc.Button(
                     "Close", id="close", className="ms-auto", n_clicks=0
@@ -280,30 +280,35 @@ def show_button(list_of_contents, list_of_names, list_of_dates):
               State('upload-data', 'last_modified'),
               State("threshold", "value"),
               State('exploration_time', 'value'),
-              State("costs_per_arm", "value")
+              State("costs_per_arm", "value"),
+              Input('random_data_analyze', 'n_clicks')
               )
-def update_data(list_of_contents, list_of_names, list_of_dates, threshold, exploration_time, costs_per_arm):
-    if list_of_contents is not None:
-        children = [parse_contents(c, n, d) for c, n, d in zip(list_of_contents, list_of_names, list_of_dates)]
+def update_data(list_of_contents, list_of_names, list_of_dates, threshold, exploration_time, costs_per_arm,
+                generated_data_click):
+    if generated_data_click:
+        df = {'B1': [random.randint(0, 1) for x in range(50)] + [1] * 50 + [0] * 50,
+              'B2': [random.randint(0, 1) for x in range(50)] + [0] * 100,
+              'B3': [random.randint(0, 1) for x in range(150)]}
+        df = pd.DataFrame(df)
         data = {
-            'df': children[0].to_json(orient='split', date_format='iso'),
-            'threshold': threshold,
-            'exploration_time': exploration_time,
-            "costs_per_arm": costs_per_arm
+            'df': df.to_json(orient='split', date_format='iso'),
+            'threshold': 0.5,
+            'exploration_time': 10,
+            "costs_per_arm": {"B1": 10, "B2": 15, "B3": 20}
         }
-        return json.dumps(data)
-
-
-@app.callback(Output('figure_1', "figure"), Output("figure_2", "figure"),
-              Input("stored_data", "data")
-              )
-def update_results(data):
-    data = json.loads(data)
+    else:
+        if list_of_contents is not None:
+            children = [parse_contents(c, n, d) for c, n, d in zip(list_of_contents, list_of_names, list_of_dates)]
+            data = {
+                'df': children[0].to_json(orient='split', date_format='iso'),
+                'threshold': threshold,
+                'exploration_time': exploration_time,
+                "costs_per_arm": eval(costs_per_arm)
+            }
 
     data_df = DataPreProcessing(processing_steps=["make_binary"],
                                 make_binary_kwargs={"threshold": data["threshold"]}).preprocess(
-        pd.read_json(data['df'], orient='split')
-    )
+        pd.read_json(data['df'], orient='split'))
 
     model = ThompsonSampling()
     if data["exploration_time"] is None:
@@ -311,9 +316,40 @@ def update_results(data):
     else:
         exploration_time = data["exploration_time"]
     a_b_lists = get_dist_params(model, data_df, exploration_time)
+    data["a_b_lists"] = a_b_lists
+    data["waste_per_arm"] = model.calculate_waste(data["costs_per_arm"])
+    data["model_arm_reward_probas"] = model.arm_reward_probas
+    data["model_arm_labels"] = model.arm_labels
+    return json.dumps(data)
+
+
+@app.callback(Output('figure_1', "figure"), Output("figure_2", "figure"), Output("best_reward_text","children"),
+              Input("stored_data", "data")
+              )
+def update_results(data):
+    data = json.loads(data)
+    a_b_lists = data["a_b_lists"]
     figure = plot_dynamic_betas(a_b_lists)
+    model = ThompsonSampling()
+    model.arm_labels = data["model_arm_labels"]
+    model.arm_reward_probas = data["model_arm_reward_probas"]
+    best_reward = model.get_best_reward(200)
     figure_2 = model.plot_best_rewards()
-    return figure, figure_2
+    best_reward_text = f"Dear user, your best reward-giving feature is {best_reward}"
+    return figure, figure_2, best_reward_text
+
+
+@app.callback(Output('calculate_waste_body', "children"),
+              Input("stored_data", "data")
+              )
+def calculate_wastes(data):
+    data = json.loads(data)
+    waste_per_arm = data["waste_per_arm"]
+    result = "Waste per arm: \n"
+    for k, v in waste_per_arm.items():
+        result += f"{k} - {v} $\n"
+    result += f"Total - {sum(waste_per_arm.values())} $"
+    return result
 
 
 if __name__ == '__main__':

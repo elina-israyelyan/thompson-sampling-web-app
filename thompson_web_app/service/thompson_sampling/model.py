@@ -1,4 +1,5 @@
 import pickle
+from statistics import mode
 
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ class ThompsonSampling(BaseModel):
         self.penalties = None
         self.number_of_plays = None
         self.arm_labels = []
+        self.predicted_best_rewards = None
 
     @property
     def arm_labels(self):
@@ -161,20 +163,33 @@ class ThompsonSampling(BaseModel):
         penalty_per_arm = {k: v for k, v in zip(self.arm_labels, self.penalties)}
         return {k: penalty_per_arm[k] * v for k, v in arm_costs.items()}
 
-    def plot_best_rewards(self, n: int = 200):
+    def get_best_reward(self, n: int = 200):
         """
-        Plot the histogram of best rewards for n predicts.
+        Get best rewards for n predictions.
         Parameters
         ----------
         n : int
+            The number of iterations for prediction.
 
+        Returns
+        -------
+        str
+            The list of best rewards for each iteration is saved to self.predicted_best_rewards
+            and the best reward is returned.
+
+        """
+        predicts_best = [self.predict() for _ in range(n)]
+        self.predicted_best_rewards = predicts_best
+        return mode(predicts_best)
+
+    def plot_best_rewards(self):
+        """
+        Plot the histogram of best rewards for n predicts.
         Returns
         -------
         go.Figure
             The histogram of best rewards
         """
-        predicts_best = []
-        for i in range(n):
-            predicts_best.append(self.predict())
+        predicts_best = self.predicted_best_rewards
         fig = go.Figure(data=[go.Histogram(x=predicts_best)])
         return fig
