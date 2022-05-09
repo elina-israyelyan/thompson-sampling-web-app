@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import os
 
 import dash_bootstrap_components as dbc
 import plotly.express as px
@@ -172,8 +173,8 @@ vis_page = html.Div([
 
     dbc.Card([
         dbc.CardBody([
-            html.P(id = "best_reward_text",
-                children = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
+            html.P(id="best_reward_text",
+                   children="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
         ])
     ], style={"width": "25rem"}, className='analysis'),
     dbc.Button("Calculate Waste", id='open', color="primary", className='calcwasteButton'),
@@ -323,7 +324,7 @@ def update_data(list_of_contents, list_of_names, list_of_dates, threshold, explo
     return json.dumps(data)
 
 
-@app.callback(Output('figure_1', "figure"), Output("figure_2", "figure"), Output("best_reward_text","children"),
+@app.callback(Output('figure_1', "figure"), Output("figure_2", "figure"), Output("best_reward_text", "children"),
               Input("stored_data", "data")
               )
 def update_results(data):
@@ -353,4 +354,5 @@ def calculate_wastes(data):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    env_dict = dict(os.environ)
+    app.run_server(debug=False, port=env_dict["PORT"], host="0.0.0.0")
