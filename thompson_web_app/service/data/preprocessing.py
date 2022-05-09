@@ -18,9 +18,9 @@ class DataPreProcessing:
         pandas.DataFrame
            Preprocessed dataframe.
         """
-        for method_name in self.processing_steps:
+        for method_name in self.processing_steps:  # iterate over preprocessing steps
             method = getattr(self, method_name)
-            data = method(data)
+            data = method(data)  # apply the current preprocessing method to data
         return data
 
     def make_binary(self, data: pd.DataFrame):
@@ -35,7 +35,7 @@ class DataPreProcessing:
         pandas.DataFrame
             Transformed dataframe.
         """
-        data = data.transform(lambda x: x > self.make_binary_kwargs["threshold"])
-        data.replace({False: 0, True: 1}, inplace=True)
+        data = data.transform(
+            lambda x: x > self.make_binary_kwargs["threshold"])  # make data points True if greater than the threshold
+        data.replace({False: 0, True: 1}, inplace=True)  # replace True/False values with 1/0
         return data
-

@@ -54,9 +54,9 @@ def plot_dynamic_betas(a_b_lists: dict):
     """
     fig = go.Figure()
     for label_name, a_b_list in a_b_lists.items():
-        hexadecimal = ["#" + ''.join([random.choice('ABCDEF0123456789') for i in range(6)])][0]
+        hexadecimal = ["#" + ''.join([random.choice('ABCDEF0123456789') for i in range(6)])][0]  # apply random color
         for a, b in a_b_list:
-            beta_new = beta(a, b)
+            beta_new = beta(a, b)  # getting the distribution with current a,b parameters for beta distribution
             fig.add_trace(go.Scatter(visible=False,
                                      line=dict(color=hexadecimal, width=6),
                                      name=label_name,
@@ -81,7 +81,7 @@ def plot_dynamic_betas(a_b_lists: dict):
         currentvalue={"prefix": "Timestamp: "},
         pad={"t": 100},
         steps=steps
-    )]
+    )]  # make the slider
 
     fig.update_layout(
         sliders=sliders

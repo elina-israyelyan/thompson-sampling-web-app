@@ -46,10 +46,10 @@ class ThompsonSampling(BaseModel):
         if not self.arm_labels or not prefit:
             self.arm_labels = data.columns.tolist()
         for i in range(len(data)):
-            best_arm_label = self.predict()
+            best_arm_label = self.predict()  # get the best label with current distribution parameters
             best_arm = self.arm_labels.index(best_arm_label)
             try:
-                is_reward = data[best_arm_label].tolist()[i]
+                is_reward = data[best_arm_label].tolist()[i]  # check the reward of the chosen arm of current time point
             except KeyError:
                 print("best arm selected was not in the new data, "
                       "so we dont know if there is a reward or not")
@@ -60,11 +60,12 @@ class ThompsonSampling(BaseModel):
             else:
                 raise ValueError("The data is not complete. Required data contains binary values only.")
 
-            if sum(self.number_of_plays) % exploration_time == 0:
+            if sum(self.number_of_plays) % exploration_time == 0:  # check if the exploration time is ended
                 for arm in range(len(self.arm_labels)):
                     num_of_fails = self.penalties[arm]
                     num_of_success = self.number_of_plays[arm] - num_of_fails
-                    self.arm_reward_probas[arm] = (1 + num_of_success, 1 + num_of_fails)
+                    self.arm_reward_probas[arm] = (
+                        1 + num_of_success, 1 + num_of_fails)  # updating the distribution parameters
 
     def predict(self):
         """
@@ -76,11 +77,11 @@ class ThompsonSampling(BaseModel):
         """
         max_proba = -1
         best_arm = -1
-        for arm in range(len(self.arm_labels)):
+        for arm in range(len(self.arm_labels)):  # for each arm get the probability of success
             a, b = self.arm_reward_probas[arm]
             arm_reward_proba = np.random.beta(a, b)
             if arm_reward_proba > max_proba:
-                max_proba = arm_reward_proba
+                max_proba = arm_reward_proba  # get the arm with maximum probability of success
                 best_arm = arm
         return self.arm_labels[best_arm]
 
@@ -89,8 +90,9 @@ class ThompsonSampling(BaseModel):
         Predict which arm is the most reward bringing at current time.
         Returns
         -------
-        str
-           The name of the arm which gave the most probability to have a reward.
+        str, float
+           The name of the arm which gave the most probability to have a reward and the
+           probability of success of the best arm.
         """
         max_proba = -1
         best_arm = -1
@@ -118,7 +120,7 @@ class ThompsonSampling(BaseModel):
             Saves the model in the save_path.
 
         """
-        with open(save_path + "model_" + version, 'wb') as f:
+        with open(save_path + "model_" + version, 'wb') as f:  # pickling the important parameters of the model
             pickle.dump({
                 "arm_reward_probas": self.arm_reward_probas,
                 "arm_labels": self.arm_labels,
@@ -140,7 +142,7 @@ class ThompsonSampling(BaseModel):
         None
             Loads the parameters of the model from the path.
         """
-        with open(load_path + "model_" + version, 'rb') as f:
+        with open(load_path + "model_" + version, 'rb') as f:  # loading the model parameters
             model = pickle.load(f)
         self.arm_reward_probas, self.arm_labels, self.penalties, self.number_of_plays = (model["arm_reward_probas"],
                                                                                          model["arm_labels"],
@@ -160,12 +162,13 @@ class ThompsonSampling(BaseModel):
         dict
             Wasted costs per arm.
         """
-        penalty_per_arm = {k: v for k, v in zip(self.arm_labels, self.penalties)}
-        return {k: penalty_per_arm[k] * v for k, v in arm_costs.items()}
+        penalty_per_arm = {k: v for k, v in
+                           zip(self.arm_labels, self.penalties)}  # get penalties per arm
+        return {k: penalty_per_arm[k] * v for k, v in arm_costs.items()}  # for each penalty multiply it by its cost
 
     def get_best_reward(self, n: int = 200):
         """
-        Get best rewards for n predictions.
+        Get best reward along n predictions.
         Parameters
         ----------
         n : int
@@ -178,7 +181,7 @@ class ThompsonSampling(BaseModel):
             and the best reward is returned.
 
         """
-        predicts_best = [self.predict() for _ in range(n)]
+        predicts_best = [self.predict() for _ in range(n)]  # do prediction n times
         self.predicted_best_rewards = predicts_best
         return mode(predicts_best)
 
@@ -190,6 +193,6 @@ class ThompsonSampling(BaseModel):
         go.Figure
             The histogram of best rewards
         """
-        predicts_best = self.predicted_best_rewards
-        fig = go.Figure(data=[go.Histogram(x=predicts_best)])
+        predicts_best = self.predicted_best_rewards  # get the n predictions from best reward calculation
+        fig = go.Figure(data=[go.Histogram(x=predicts_best)])  # make a histogram
         return fig
