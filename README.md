@@ -53,6 +53,18 @@ For windows
 set PYTHONPATH='thompson_web_app'
 ```
 
+Finally, you should define environmental variables for the app to run.
+
+```bash
+export PORT={the port you want the app to run on}
+```
+
+For windows
+
+```bash
+set PORT={the port you want the app to run on}
+```
+
 ### Running the app
 
 After setting up the environment you can run the application by running the `thompson_web_app/app/app.py` python file
@@ -61,4 +73,6 @@ with the following command.
 ```bash
 python thompson_web_app/app/app.py
 ```
-You can see the application running on  http://127.0.0.1:8050/homepage
+
+You can see the application running on  http://127.0.0.1:8050/homepage \
+Also, you can check the working app on https://find-your-reward.herokuapp.com/homepage

@@ -120,7 +120,6 @@ index_page = html.Div([dbc.Card([
 
 df = px.data.iris()  # iris is a pandas DataFrame
 fig = px.scatter(df, x="sepal_width", y="sepal_length"),
-popover_children = "I am a poopover!"
 
 vis_page = html.Div([
 
@@ -136,7 +135,7 @@ vis_page = html.Div([
                 style={'height': '30px', 'weight': '30px', 'textAlign': 'left'}
             ),
             dbc.Popover(
-                popover_children,
+                "The current graph shows the beta distributions of the arms' probabilities of success  over time.",
                 target="hover-target",
                 body=True,
                 trigger="hover"),
@@ -158,7 +157,7 @@ vis_page = html.Div([
 
             ),
             dbc.Popover(
-                popover_children,
+                "The current graph shows the histogram of best rewards for 200 predictions",
                 target="hover-target1",
                 body=True,
                 trigger="hover"),
