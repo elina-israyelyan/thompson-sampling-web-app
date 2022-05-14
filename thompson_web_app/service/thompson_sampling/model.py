@@ -120,7 +120,7 @@ class ThompsonSampling(BaseModel):
             Saves the model in the save_path.
 
         """
-        with open(save_path + "model_" + version, 'wb') as f:  # pickling the important parameters of the model
+        with open(save_path + "model_" + version + ".pkl", 'wb') as f:  # pickling the important parameters of the model
             pickle.dump({
                 "arm_reward_probas": self.arm_reward_probas,
                 "arm_labels": self.arm_labels,
@@ -142,7 +142,7 @@ class ThompsonSampling(BaseModel):
         None
             Loads the parameters of the model from the path.
         """
-        with open(load_path + "model_" + version, 'rb') as f:  # loading the model parameters
+        with open(load_path + "model_" + version + ".pkl", 'rb') as f:  # loading the model parameters
             model = pickle.load(f)
         self.arm_reward_probas, self.arm_labels, self.penalties, self.number_of_plays = (model["arm_reward_probas"],
                                                                                          model["arm_labels"],
